@@ -1,0 +1,177 @@
+//@version=5
+indicator("Top 24 Hours - Candle Comparison", overlay=false)
+
+// Data for US100, US500, US30
+us100_close = request.security("CAPITALCOM:US100", "60", close)
+us100_open = request.security("CAPITALCOM:US100", "60", open)
+
+us500_close = request.security("CAPITALCOM:US500", "60", close)
+us500_open = request.security("CAPITALCOM:US500", "60", open)
+
+us30_close = request.security("CAPITALCOM:US30", "60", close)
+us30_open = request.security("CAPITALCOM:US30", "60", open)
+
+// Determine if the candles are bullish or bearish for US100, US500, US30
+us100_bullish = us100_close > us100_open
+us500_bullish = us500_close > us500_open
+us30_bullish = us30_close > us30_open
+
+us100_bearish = us100_close < us100_open
+us500_bearish = us500_close < us500_open
+us30_bearish = us30_close < us30_open
+
+// Conditions: one bullish and two bearish or vice versa
+one_bullish_two_bearish = (us100_bullish and us500_bearish and us30_bearish) or
+                          (us500_bullish and us100_bearish and us30_bearish) or
+                          (us30_bullish and us100_bearish and us500_bearish)
+
+one_bearish_two_bullish = (us100_bearish and us500_bullish and us30_bullish) or
+                          (us500_bearish and us100_bullish and us30_bullish) or
+                          (us30_bearish and us100_bullish and us500_bullish)
+
+// Initialize the hours tracking arrays for US100, US500, US30
+var int[] hour_counts_us = array.new_int(24, 0)
+
+// Initialize a flat array to track weekday counts for each hour
+var int[] weekday_counts_us = array.new_int(24 * 7, 0)  // Flattened 2D array: 24 hours * 7 days
+
+// Function to get the index in the flattened array
+get_flat_index(hour, weekday) =>
+    hour * 7 + weekday
+
+// Declare hour_idx variable
+var int hour_idx_us = na
+
+// Update the count if conditions are met for US100, US500, US30
+if (one_bullish_two_bearish or one_bearish_two_bullish)
+    hour_idx_us := hour(time)
+    if hour_idx_us >= 0 and hour_idx_us < 24
+        array.set(hour_counts_us, hour_idx_us, array.get(hour_counts_us, hour_idx_us) + 1)
+        weekday_idx = dayofweek(time) - 1
+        flat_index = get_flat_index(hour_idx_us, weekday_idx)
+        array.set(weekday_counts_us, flat_index, array.get(weekday_counts_us, flat_index) + 1)
+
+// Data for ES1!, NQ1!, YM1!
+es_close = request.security("ES1!", "60", close)
+es_open = request.security("ES1!", "60", open)
+
+nq_close = request.security("NQ1!", "60", close)
+nq_open = request.security("NQ1!", "60", open)
+
+ym_close = request.security("YM1!", "60", close)
+ym_open = request.security("YM1!", "60", open)
+
+// Determine if the candles are bullish or bearish for ES1!, NQ1!, YM1!
+es_bullish = es_close > es_open
+nq_bullish = nq_close > nq_open
+ym_bullish = ym_close > ym_open
+
+es_bearish = es_close < es_open
+nq_bearish = nq_close < nq_open
+ym_bearish = ym_close < ym_open
+
+// Conditions: one bullish and two bearish or vice versa for ES1!, NQ1!, YM1!
+one_bullish_two_bearish_3_assets = (es_bullish and nq_bearish and ym_bearish) or(nq_bullish and es_bearish and ym_bearish) or (ym_bullish and es_bearish and nq_bearish)
+
+one_bearish_two_bullish_3_assets = (es_bearish and nq_bullish and ym_bullish) or (nq_bearish and es_bullish and ym_bullish) or(ym_bearish and es_bullish and nq_bullish)
+
+// Initialize the hours tracking arrays for ES1!, NQ1!, YM1!
+var int[] hour_counts_3_assets = array.new_int(24, 0)
+
+// Initialize a flat array to track weekday counts for each hour
+var int[] weekday_counts_3_assets = array.new_int(24 * 7, 0)  // Flattened 2D array: 24 hours * 7 days
+
+// Function to get the index in the flattened array
+get_flat_index_3_assets(hour, weekday) =>
+    hour * 7 + weekday
+
+// Declare hour_idx variable
+var int hour_idx_3_assets = na
+
+// Update the count if conditions are met for ES1!, NQ1!, YM1!
+if (one_bullish_two_bearish_3_assets or one_bearish_two_bullish_3_assets)
+    hour_idx_3_assets := hour(time)
+    if hour_idx_3_assets >= 0 and hour_idx_3_assets < 24
+        array.set(hour_counts_3_assets, hour_idx_3_assets, array.get(hour_counts_3_assets, hour_idx_3_assets) + 1)
+        weekday_idx = dayofweek(time) - 1
+        flat_index = get_flat_index_3_assets(hour_idx_3_assets, weekday_idx)
+        array.set(weekday_counts_3_assets, flat_index, array.get(weekday_counts_3_assets, flat_index) + 1)
+
+// Determine the most frequent weekday for each hour
+var int[] most_frequent_weekday_us = array.new_int(24, 0)
+var int[] most_frequent_weekday_3_assets = array.new_int(24, 0)
+
+// Function to get weekday name
+weekday_name(index) =>
+    switch index
+        0 => "Sun"
+        1 => "Mon"
+        2 => "Tue"
+        3 => "Wed"
+        4 => "Thu"
+        5 => "Fri"
+        6 => "Sat"
+        => "Unknown"
+
+// Calculate most frequent weekday for each hour
+for i = 0 to 23
+    max_count = 0
+    frequent_weekday = 0
+    for j = 0 to 6
+        flat_index = get_flat_index(i, j)
+        count = array.get(weekday_counts_us, flat_index)
+        if count > max_count
+            max_count := count
+            frequent_weekday := j
+    array.set(most_frequent_weekday_us, i, frequent_weekday)
+
+for i = 0 to 23
+    max_count = 0
+    frequent_weekday = 0
+    for j = 0 to 6
+        flat_index = get_flat_index_3_assets(i, j)
+        count = array.get(weekday_counts_3_assets, flat_index)
+        if count > max_count
+            max_count := count
+            frequent_weekday := j
+    array.set(most_frequent_weekday_3_assets, i, frequent_weekday)
+
+// Create tables to display all 24 hours
+var table exportTable1 = table.new(position.top_right, 4, 25, bgcolor=color.new(color.white, 0))
+var table exportTable2 = table.new(position.top_left, 4, 25, bgcolor=color.new(color.white, 0))
+
+// Add headers to tables
+if (bar_index == 0)
+    // First Table (US100, US500, US30)
+    table.cell(exportTable1, 0, 0, "Rank", bgcolor=color.gray)
+    table.cell(exportTable1, 1, 0, "Hour", bgcolor=color.gray)
+    table.cell(exportTable1, 2, 0, "Occurrences", bgcolor=color.gray)
+    table.cell(exportTable1, 3, 0, "Most Frequent Weekday", bgcolor=color.gray)
+    
+    // Second Table (ES1!, NQ1!, YM1!)
+    table.cell(exportTable2, 0, 0, "Rank", bgcolor=color.gray)
+    table.cell(exportTable2, 1, 0, "Hour", bgcolor=color.gray)
+    table.cell(exportTable2, 2, 0, "Occurrences", bgcolor=color.gray)
+    table.cell(exportTable2, 3, 0, "Most Frequent Weekday", bgcolor=color.gray)
+
+// Populate the first table with sorted hours for US100, US500, US30
+for i = 0 to 23
+    hour_idx_us = i
+    occurrences_us = array.get(hour_counts_us, hour_idx_us)
+    weekday_str_us = weekday_name(array.get(most_frequent_weekday_us, hour_idx_us))
+    hour_str_us = str.tostring(hour_idx_us) + ":00"
+    table.cell(exportTable1, 0, i + 1, str.tostring(i + 1))
+    table.cell(exportTable1, 1, i + 1, hour_str_us)
+    table.cell(exportTable1, 2, i + 1, str.tostring(occurrences_us))
+    table.cell(exportTable1, 3, i + 1, weekday_str_us)
+
+// Populate the second table with sorted hours for ES1!, NQ1!, YM1!
+for i = 0 to 23
+    hour_idx_3_assets = i
+    occurrences_3_assets = array.get(hour_counts_3_assets, hour_idx_3_assets)
+    weekday_str_3_assets = weekday_name(array.get(most_frequent_weekday_3_assets, hour_idx_3_assets))
+    hour_str_3_assets = str.tostring(hour_idx_3_assets) + ":00"
+    table.cell(exportTable2, 0, i + 1, str.tostring(i + 1))
+    table.cell(exportTable2, 1, i + 1, hour_str_3_assets)
+    table.cell(exportTable2, 2, i + 1, str.tostring(occurrences_3_assets))
+    table.cell(exportTable2, 3, i + 1, weekday_str_3_assets)
