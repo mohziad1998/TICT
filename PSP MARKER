@@ -1,0 +1,36 @@
+//@version=5
+indicator("Candle Comparison Marker", overlay=true)
+
+// Get the candle data for US100, US500, and US30
+us100_close = request.security("CAPITALCOM:US100", "15", close)
+us100_open = request.security("CAPITALCOM:US100", "15", open)
+
+us500_close = request.security("CAPITALCOM:US500", "15", close)
+us500_open = request.security("CAPITALCOM:US500", "15", open)
+
+us30_close = request.security("CAPITALCOM:US30", "15", close)
+us30_open = request.security("CAPITALCOM:US30", "15", open)
+
+// Determine if the candles are bullish or bearish
+us100_bullish = us100_close > us100_open
+us500_bullish = us500_close > us500_open
+us30_bullish = us30_close > us30_open
+
+us100_bearish = us100_close < us100_open
+us500_bearish = us500_close < us500_open
+us30_bearish = us30_close < us30_open
+
+// Check for the condition: one bullish and two bearish, or one bearish and two bullish
+one_bullish_two_bearish = (us100_bullish and not us500_bullish and not us30_bullish) or 
+                          (us500_bullish and not us100_bullish and not us30_bullish) or 
+                          (us30_bullish and not us100_bullish and not us500_bullish)
+
+one_bearish_two_bullish = (not us100_bullish and us500_bullish and us30_bullish) or 
+                          (not us500_bullish and us100_bullish and us30_bullish) or 
+                          (not us30_bullish and us100_bullish and us500_bullish)
+
+// Plot a smaller red dot above the candle for one bullish and two bearish
+plotshape(one_bullish_two_bearish, title="One Bullish Two Bearish", location=location.abovebar, color=color.red, style=shape.circle, size=size.tiny)
+
+// Plot a smaller green dot below the candle for one bearish and two bullish
+plotshape(one_bearish_two_bullish, title="One Bearish Two Bullish", location=location.belowbar, color=color.green, style=shape.circle, size=size.tiny)
