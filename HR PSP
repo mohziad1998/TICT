@@ -1,0 +1,152 @@
+//@version=5
+indicator("Top 24 Hours - Candle Comparison", overlay=false)
+
+// Data for US100, US500, and US30
+us100_close = request.security("US100", "60", close)
+us100_open = request.security("US100", "60", open)
+
+us500_close = request.security("US500", "60", close)
+us500_open = request.security("US500", "60", open)
+
+us30_close = request.security("US30", "60", close)
+us30_open = request.security("US30", "60", open)
+
+// Determine if the candles are bullish or bearish for US100, US500, US30
+us100_bullish = us100_close > us100_open
+us500_bullish = us500_close > us500_open
+us30_bullish = us30_close > us30_open
+
+us100_bearish = us100_close < us100_open
+us500_bearish = us500_close < us500_open
+us30_bearish = us30_close < us30_open
+
+// Conditions: one bullish and two bearish or vice versa
+one_bullish_two_bearish = (us100_bullish and us500_bearish and us30_bearish) or
+                          (us500_bullish and us100_bearish and us30_bearish) or
+                          (us30_bullish and us100_bearish and us500_bearish)
+
+one_bearish_two_bullish = (us100_bearish and us500_bullish and us30_bullish) or
+                          (us500_bearish and us100_bullish and us30_bullish) or
+                          (us30_bearish and us100_bullish and us500_bullish)
+
+// Initialize the hours tracking array for US100, US500, US30
+var int[] hour_counts_us = array.new_int(24, 0)
+
+// Declare hour_idx variable
+var int hour_idx_us = na
+
+// Update the count if conditions are met for US100, US500, US30
+if (one_bullish_two_bearish or one_bearish_two_bullish)
+    hour_idx_us := hour(time)
+    array.set(hour_counts_us, hour_idx_us, array.get(hour_counts_us, hour_idx_us) + 1)
+
+// Data for ES1!, NQ1!, YM1!
+es_close = request.security("ES1!", "60", close)
+es_open = request.security("ES1!", "60", open)
+
+nq_close = request.security("NQ1!", "60", close)
+nq_open = request.security("NQ1!", "60", open)
+
+ym_close = request.security("YM1!", "60", close)
+ym_open = request.security("YM1!", "60", open)
+
+// Determine if the candles are bullish or bearish for ES1!, NQ1!, YM1!
+es_bullish = es_close > es_open
+nq_bullish = nq_close > nq_open
+ym_bullish = ym_close > ym_open
+
+es_bearish = es_close < es_open
+nq_bearish = nq_close < nq_open
+ym_bearish = ym_close < ym_open
+
+// Conditions: one bullish and two bearish or vice versa for ES1!, NQ1!, YM1!
+one_bullish_two_bearish_3_assets = (es_bullish and nq_bearish and ym_bearish) or(nq_bullish and es_bearish and ym_bearish) or(ym_bullish and es_bearish and nq_bearish)
+
+one_bearish_two_bullish_3_assets = (es_bearish and nq_bullish and ym_bullish) or(nq_bearish and es_bullish and ym_bullish) or(ym_bearish and es_bullish and nq_bullish)
+
+// Initialize the hours tracking array for ES1!, NQ1!, YM1!
+var int[] hour_counts_3_assets = array.new_int(24, 0)
+
+// Declare hour_idx variable
+var int hour_idx_3_assets = na
+
+// Update the count if conditions are met for ES1!, NQ1!, YM1!
+if (one_bullish_two_bearish_3_assets or one_bearish_two_bullish_3_assets)
+    hour_idx_3_assets := hour(time)
+    array.set(hour_counts_3_assets, hour_idx_3_assets, array.get(hour_counts_3_assets, hour_idx_3_assets) + 1)
+
+// Sort hours by occurrences for US100, US500, US30
+var int[] sorted_hours_us = array.new_int(24, na)
+var int[] sorted_counts_us = array.new_int(24, 0)
+
+for i = 0 to 23
+    array.set(sorted_hours_us, i, i)
+    array.set(sorted_counts_us, i, array.get(hour_counts_us, i))
+
+// Sort the hours and counts
+for i = 0 to 22
+    for j = i + 1 to 23
+        if array.get(sorted_counts_us, i) < array.get(sorted_counts_us, j)
+            // Swap counts
+            temp_count = array.get(sorted_counts_us, i)
+            array.set(sorted_counts_us, i, array.get(sorted_counts_us, j))
+            array.set(sorted_counts_us, j, temp_count)
+            // Swap hours
+            temp_hour = array.get(sorted_hours_us, i)
+            array.set(sorted_hours_us, i, array.get(sorted_hours_us, j))
+            array.set(sorted_hours_us, j, temp_hour)
+
+// Sort hours by occurrences for ES1!, NQ1!, YM1!
+var int[] sorted_hours_3_assets = array.new_int(24, na)
+var int[] sorted_counts_3_assets = array.new_int(24, 0)
+
+for i = 0 to 23
+    array.set(sorted_hours_3_assets, i, i)
+    array.set(sorted_counts_3_assets, i, array.get(hour_counts_3_assets, i))
+
+// Sort the hours and counts
+for i = 0 to 22
+    for j = i + 1 to 23
+        if array.get(sorted_counts_3_assets, i) < array.get(sorted_counts_3_assets, j)
+            // Swap counts
+            temp_count = array.get(sorted_counts_3_assets, i)
+            array.set(sorted_counts_3_assets, i, array.get(sorted_counts_3_assets, j))
+            array.set(sorted_counts_3_assets, j, temp_count)
+            // Swap hours
+            temp_hour = array.get(sorted_hours_3_assets, i)
+            array.set(sorted_hours_3_assets, i, array.get(sorted_hours_3_assets, j))
+            array.set(sorted_hours_3_assets, j, temp_hour)
+
+// Create tables to display all 24 hours
+var table exportTable1 = table.new(position.top_right, 3, 25, bgcolor=color.new(color.white, 0))
+var table exportTable2 = table.new(position.top_left, 3, 25, bgcolor=color.new(color.white, 0))
+
+// Add headers to tables
+if (bar_index == 0)
+    // First Table (US100, US500, US30)
+    table.cell(exportTable1, 0, 0, "Rank", bgcolor=color.gray)
+    table.cell(exportTable1, 1, 0, "Hour", bgcolor=color.gray)
+    table.cell(exportTable1, 2, 0, "Occurrences", bgcolor=color.gray)
+    
+    // Second Table (ES1!, NQ1!, YM1!)
+    table.cell(exportTable2, 0, 0, "Rank", bgcolor=color.gray)
+    table.cell(exportTable2, 1, 0, "Hour", bgcolor=color.gray)
+    table.cell(exportTable2, 2, 0, "Occurrences", bgcolor=color.gray)
+
+// Populate the first table with sorted hours for US100, US500, US30
+for i = 0 to 23
+    hour_idx_us = array.get(sorted_hours_us, i)
+    occurrences_us = array.get(sorted_counts_us, i)
+    hour_str_us = str.tostring(hour_idx_us) + ":00"
+    table.cell(exportTable1, 0, i + 1, str.tostring(i + 1))
+    table.cell(exportTable1, 1, i + 1, hour_str_us)
+    table.cell(exportTable1, 2, i + 1, str.tostring(occurrences_us))
+
+// Populate the second table with sorted hours for ES1!, NQ1!, YM1!
+for i = 0 to 23
+    hour_idx_3_assets = array.get(sorted_hours_3_assets, i)
+    occurrences_3_assets = array.get(sorted_counts_3_assets, i)
+    hour_str_3_assets = str.tostring(hour_idx_3_assets) + ":00"
+    table.cell(exportTable2, 0, i + 1, str.tostring(i + 1))
+    table.cell(exportTable2, 1, i + 1, hour_str_3_assets)
+    table.cell(exportTable2, 2, i + 1, str.tostring(occurrences_3_assets))
